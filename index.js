@@ -1,6 +1,6 @@
 const express = require('express');
 const cors = require('cors');
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config()
 
 const app = express();
@@ -31,23 +31,20 @@ async function run() {
 
         app.post('/events', async (req, res) => {
             const event = req.body;
-            console.log(event)
             const result = await eventCollections.insertOne(event);
             res.send(result);
         })
-
-
         app.get('/events', async (req, res) => {
-            const email = req.query.email;
-
-            const query = {};
-
-            if (email) {
-                query.creator = email;
-            }
-
-            const result = await eventCollections.find(query).toArray();
-            res.send(result)
+            const currentDate = new Date().toISOString()
+            const query = { eventDate: { $gte: currentDate } };
+            const futureEvents = await eventCollections.find(query).sort({ eventDate: 1 }).toArray();
+            res.send(futureEvents);
+        })
+        app.get('/eventDetails/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const result = await eventCollections.findOne(query);
+            res.send(result);
         })
 
         await client.db("admin").command({ ping: 1 });
