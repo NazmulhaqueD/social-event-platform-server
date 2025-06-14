@@ -32,12 +32,24 @@ async function run() {
 
 
         app.get('/events', async (req, res) => {
+            const email = req.query.email;
+
             const currentDate = new Date().toISOString()
             const query = { eventDate: { $gte: currentDate } };
+
+            if (email) {
+                query.creator = email
+            }
+
             const futureEvents = await eventCollections.find(query).sort({ eventDate: 1 }).toArray();
             res.send(futureEvents);
         })
-        app.get('/eventDetails/:id', async (req, res) => {
+        // app.get('/event', async (req, res) => {
+        //     const id = req.params.id;
+        //     const query = { _id: new ObjectId(id) };
+        //     const result = await eventCollections.findOne(query)
+        // })
+        app.get('/events/:id', async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) };
             const result = await eventCollections.findOne(query);
@@ -61,6 +73,20 @@ async function run() {
             console.log(joinedEvents)
             res.send(result)
         })
+        app.put('/eventUpdate/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: new ObjectId(id) };
+            const updateEventData = req.body;
+            console.log(updateEventData);
+
+            const updateDoc = {
+                $set: updateEventData
+            }
+            const result = await eventCollections.updateOne(filter, updateDoc);
+            res.send(result);
+
+        })
+       
         app.delete('/cancelEvent/:id', async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) };
