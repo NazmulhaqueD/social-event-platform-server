@@ -27,13 +27,10 @@ async function run() {
     try {
         await client.connect();
         const database = client.db('social_serve');
-        const eventCollections = database.collection('events')
+        const eventCollections = database.collection('events');
+        const joinedEventsCollections = database.collection('joinedEvents')
 
-        app.post('/events', async (req, res) => {
-            const event = req.body;
-            const result = await eventCollections.insertOne(event);
-            res.send(result);
-        })
+
         app.get('/events', async (req, res) => {
             const currentDate = new Date().toISOString()
             const query = { eventDate: { $gte: currentDate } };
@@ -46,6 +43,32 @@ async function run() {
             const result = await eventCollections.findOne(query);
             res.send(result);
         })
+        app.get('/joinedEvents/:email', async (req, res) => {
+            const email = req.params.email;
+            const query = { participant: email };
+            const result = await joinedEventsCollections.find(query).sort({ eventDate: 1 }).toArray();
+            console.log(email)
+            res.send(result)
+        })
+        app.post('/events', async (req, res) => {
+            const event = req.body;
+            const result = await eventCollections.insertOne(event);
+            res.send(result);
+        })
+        app.post('/joinedEvents', async (req, res) => {
+            const joinedEvents = req.body;
+            const result = await joinedEventsCollections.insertOne(joinedEvents);
+            console.log(joinedEvents)
+            res.send(result)
+        })
+        app.delete('/cancelEvent/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const result = await joinedEventsCollections.deleteOne(query);
+            res.send(result);
+        })
+
+
 
         await client.db("admin").command({ ping: 1 });
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
