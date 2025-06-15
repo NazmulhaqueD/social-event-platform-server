@@ -32,13 +32,19 @@ async function run() {
 
 
         app.get('/events', async (req, res) => {
-            const email = req.query.email;
+            const { email, type, search } = req.query;
 
             const currentDate = new Date().toISOString()
             const query = { eventDate: { $gte: currentDate } };
 
             if (email) {
                 query.creator = email
+            }
+            if (type) {
+                query.eventType = type
+            }
+            if (search) {
+                query.title = { $regex: search, $options: 'i' }
             }
 
             const futureEvents = await eventCollections.find(query).sort({ eventDate: 1 }).toArray();
@@ -77,7 +83,6 @@ async function run() {
             const id = req.params.id;
             const filter = { _id: new ObjectId(id) };
             const updateEventData = req.body;
-            console.log(updateEventData);
 
             const updateDoc = {
                 $set: updateEventData
@@ -86,7 +91,12 @@ async function run() {
             res.send(result);
 
         })
-       
+        app.delete('/eventDelete/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const result = await eventCollections.deleteOne(query);
+            res.send(result);
+        })
         app.delete('/cancelEvent/:id', async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) };
