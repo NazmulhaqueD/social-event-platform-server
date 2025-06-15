@@ -50,11 +50,10 @@ async function run() {
             const futureEvents = await eventCollections.find(query).sort({ eventDate: 1 }).toArray();
             res.send(futureEvents);
         })
-        // app.get('/event', async (req, res) => {
-        //     const id = req.params.id;
-        //     const query = { _id: new ObjectId(id) };
-        //     const result = await eventCollections.findOne(query)
-        // })
+        app.get('/latestEvents', async (req, res) => {
+            const latestEvent = await eventCollections.find().sort({ postDate: -1 }).limit(6).toArray();
+            res.send(latestEvent)
+        })
         app.get('/events/:id', async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) };
