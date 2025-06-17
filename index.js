@@ -125,12 +125,12 @@ async function run() {
             console.log(email)
             res.send(result)
         })
-        app.post('/events', async (req, res) => {
+        app.post('/events', verifyFirebaseToken, async (req, res) => {
             const event = req.body;
             const result = await eventCollections.insertOne(event);
             res.send(result);
         })
-        app.post('/joinedEvents', async (req, res) => {
+        app.post('/joinedEvents', verifyFirebaseToken, async (req, res) => {
             const joinedEvents = req.body;
             const result = await joinedEventsCollections.insertOne(joinedEvents);
             console.log(joinedEvents)
@@ -148,13 +148,13 @@ async function run() {
             res.send(result);
 
         })
-        app.delete('/eventDelete/:id', async (req, res) => {
+        app.delete('/eventDelete/:id', verifyFirebaseToken, async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) };
             const result = await eventCollections.deleteOne(query);
             res.send(result);
         })
-        app.delete('/cancelEvent/:id', async (req, res) => {
+        app.delete('/cancelEvent/:id', verifyFirebaseToken, async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) };
             const result = await joinedEventsCollections.deleteOne(query);
