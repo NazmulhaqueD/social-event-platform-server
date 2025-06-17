@@ -46,7 +46,6 @@ const verifyFirebaseToken = async (req, res, next) => {
     try {
         const decoded = await admin.auth().verifyIdToken(token);
         req.decoded = decoded;
-        console.log(decoded.email);
         next()
     }
     catch (error) {
@@ -58,7 +57,6 @@ const verifyTokenEmail = (req, res, next) => {
     if (req.query.email !== req.decoded.email) {
         return res.status(403).send({ message: 'Forbidden access' });
     }
-    console.log('query', req.query.email, 'decoded', req.decoded.email)
     next();
 }
 
@@ -78,9 +76,9 @@ async function run() {
             const currentDate = new Date().toISOString()
             const query = { eventDate: { $gte: currentDate } };
 
-            if (email) {
-                query.creator = email
-            }
+            // if (email) {
+            //     query.creator = email
+            // }
             if (type) {
                 query.eventType = type
             }
@@ -122,7 +120,6 @@ async function run() {
 
             const query = { participant: email };
             const result = await joinedEventsCollections.find(query).sort({ eventDate: 1 }).toArray();
-            console.log(email)
             res.send(result)
         })
         app.post('/events', verifyFirebaseToken, async (req, res) => {
@@ -133,7 +130,6 @@ async function run() {
         app.post('/joinedEvents', verifyFirebaseToken, async (req, res) => {
             const joinedEvents = req.body;
             const result = await joinedEventsCollections.insertOne(joinedEvents);
-            console.log(joinedEvents)
             res.send(result)
         })
         app.put('/eventUpdate/:id', async (req, res) => {
