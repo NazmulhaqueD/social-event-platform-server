@@ -3,6 +3,9 @@ const cors = require('cors');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config()
 
+const admin = require("firebase-admin");
+const serviceAccount = require("./firebase-admin.json");
+
 const app = express();
 const port = process.env.PORT || 5000;
 
@@ -12,7 +15,7 @@ app.use(cors());
 app.use(express.json());
 
 
-const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.Db_pass}@dbuser.9mw1e0i.mongodb.net/?retryWrites=true&w=majority&appName=dbUser`;
+const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@dbuser.9mw1e0i.mongodb.net/?retryWrites=true&w=majority&appName=dbUser`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
@@ -23,9 +26,47 @@ const client = new MongoClient(uri, {
     }
 });
 
+
+admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount)
+});
+
+
+// firebase verifyToken 
+const verifyFirebaseToken = async (req, res, next) => {
+
+    const authHeader = req.headers?.authorization;
+
+    if (!authHeader || !authHeader?.startsWith('Bearer ')) {
+        return res.status(401).send({ message: 'unauthorize access' });
+    }
+
+    const token = authHeader.split(' ')[1];
+
+    try {
+        const decoded = await admin.auth().verifyIdToken(token);
+        req.decoded = decoded;
+        console.log(decoded.email);
+        next()
+    }
+    catch (error) {
+        res.status(401).send({ message: 'unauthorize access' })
+    }
+}
+
+const verifyTokenEmail = (req, res, next) => {
+    if (req.query.email !== req.decoded.email) {
+        return res.status(403).send({ message: 'Forbidden access' });
+    }
+    console.log('query', req.query.email, 'decoded', req.decoded.email)
+    next();
+}
+
+
+
 async function run() {
     try {
-        await client.connect();
+        // await client.connect();
         const database = client.db('social_serve');
         const eventCollections = database.collection('events');
         const joinedEventsCollections = database.collection('joinedEvents')
@@ -50,6 +91,18 @@ async function run() {
             const futureEvents = await eventCollections.find(query).sort({ eventDate: 1 }).toArray();
             res.send(futureEvents);
         })
+
+        app.get('/manageEvents', verifyFirebaseToken, verifyTokenEmail, async (req, res) => {
+            const { email } = req.query;
+            const currentDate = new Date().toISOString()
+            const query = { eventDate: { $gte: currentDate } };
+            if (email) {
+                query.creator = email
+            }
+            const futureEvents = await eventCollections.find(query).sort({ eventDate: 1 }).toArray();
+            res.send(futureEvents);
+        })
+
         app.get('/latestEvents', async (req, res) => {
             const latestEvent = await eventCollections.find().sort({ postDate: -1 }).limit(6).toArray();
             res.send(latestEvent)
@@ -60,8 +113,13 @@ async function run() {
             const result = await eventCollections.findOne(query);
             res.send(result);
         })
-        app.get('/joinedEvents/:email', async (req, res) => {
+        app.get('/joinedEvents/:email', verifyFirebaseToken, async (req, res) => {
             const email = req.params.email;
+
+            if (email !== req.decoded?.email) {
+                return res.status(403).send({ message: 'Forbidden access' });
+            }
+
             const query = { participant: email };
             const result = await joinedEventsCollections.find(query).sort({ eventDate: 1 }).toArray();
             console.log(email)
@@ -103,10 +161,6 @@ async function run() {
             res.send(result);
         })
 
-
-
-        await client.db("admin").command({ ping: 1 });
-        console.log("Pinged your deployment. You successfully connected to MongoDB!");
     } finally {
         // Ensures that the client will close when you finish/error
     }
