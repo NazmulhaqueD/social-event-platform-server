@@ -68,6 +68,9 @@ async function run() {
         const database = client.db('social_serve');
         const eventCollections = database.collection('events');
         const joinedEventsCollections = database.collection('joinedEvents')
+        const volunteerCollections = database.collection('volunteers')
+        const allProductsCollection = database.collection('allProduct')
+        const commentsCollection = database.collection("comments");
 
 
         app.get('/events', async (req, res) => {
@@ -122,6 +125,36 @@ async function run() {
             const result = await joinedEventsCollections.find(query).sort({ eventDate: 1 }).toArray();
             res.send(result)
         })
+        app.get('/volunteers', async (req, res) => {
+            const result = await volunteerCollections.find().sort({ createdAt: -1 }).toArray();
+            res.send(result);
+        })
+        app.get('/products', async (req, res) => {
+            const result = await allProductsCollection.find().toArray();
+            res.send(result);
+        })
+        app.get('/products/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const result = await allProductsCollection.findOne(query);
+            res.send(result);
+        })
+        app.get("/comments/", async (req, res) => {
+            const { eventId } = req.query;
+            const filter = {};
+            if (eventId) {
+                filter.eventId = eventId;
+            }
+            const comments = await commentsCollection
+                .find(filter)
+                .sort({ createdAt: -1 })
+                .toArray();
+            res.send(comments);
+        });
+
+
+
+        // post api
         app.post('/events', verifyFirebaseToken, async (req, res) => {
             const event = req.body;
             const result = await eventCollections.insertOne(event);
@@ -132,6 +165,24 @@ async function run() {
             const result = await joinedEventsCollections.insertOne(joinedEvents);
             res.send(result)
         })
+        app.post('/volunteers', async (req, res) => {
+            const volunteer = req.body;
+            const result = await volunteerCollections.insertOne(volunteer);
+            res.send(result)
+        })
+        app.post('/products', async (req, res) => {
+            const products = req.body;
+            const result = await allProductsCollection.insertOne(products);
+            res.send(result);
+        })
+        app.post('/comments', async (req, res) => {
+            const comment = req.body;
+            const result = await commentsCollection.insertOne(comment);
+            res.send(result);
+        })
+
+
+
         app.put('/eventUpdate/:id', async (req, res) => {
             const id = req.params.id;
             const filter = { _id: new ObjectId(id) };
@@ -144,6 +195,8 @@ async function run() {
             res.send(result);
 
         })
+
+
         app.delete('/eventDelete/:id', verifyFirebaseToken, async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) };
