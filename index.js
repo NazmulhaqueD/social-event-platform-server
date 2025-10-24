@@ -151,6 +151,15 @@ async function run() {
                 .toArray();
             res.send(comments);
         });
+        app.get('/joinedEvents', async (req, res) => {
+            const { eventId } = req.query;
+            const filter = {};
+            if (eventId) {
+                filter.join_id = eventId;
+            }
+            const participants = await joinedEventsCollections.find(filter).sort({ _id: -1 }).toArray();
+            res.send(participants);
+        });
 
 
 
